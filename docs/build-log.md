@@ -170,3 +170,22 @@ This replaces the design's decision to use the runtime's native sign convention.
 - `docs/design.md` is unchanged and still describes the native convention in sections 5 and 12.
 
 Tool used: Claude Code.
+
+## 2026-11-14: copybook-codec spec, requirements stage
+
+Tool used: Kiro IDE, Spec agent, "Build a Feature" (requirements-first). Kiro wrote
+`.kiro/specs/copybook-codec/requirements.md`: 11 requirements in EARS form with round-trip,
+idempotence, invariant and error-condition properties.
+
+Review before approval (Claude Code checked the file against the copybooks, the seed data and
+the old program; the owner sent the corrections to Kiro, which revised the file):
+
+- `ACCT-EXPIRAION-DATE` offset corrected from 35 to 58.
+- A sign test through the load and unload utilities was replaced, since those copy bytes
+  without interpreting them. The test now runs the old program and compares `TRAN-AMT` bytes.
+- Added: pinned pytest and Hypothesis in the image, and an import check for the engine package.
+- A pretty-printer was removed from the product; the parser round trip uses a test-only helper.
+
+New observations used as acceptance values: a negative amount that truncates to zero is
+written as positive zero (`-1.00` at `6.00` gives `0000000000{`), and `-1.20` at `10.00`
+gives `0000000000J`. All 201 seed lines decode under the spec's rules.
