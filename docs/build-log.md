@@ -87,4 +87,39 @@ Tool used: Claude Code (launch plumbing only; the real server is to be built in 
 - Kiro reported "Migrated 1 MCP tool auto-approval to Trust v2": the `autoApprove` entry was
   copied into a per-workspace `permissions.yaml` under `~/.kiro/workspace-roots/`.
 
-Still open: agent permission rules and the `PostFileSave` hook.
+## 2026-11-14: Kiro agent permissions and hook validation
+
+Tools used: Kiro IDE wrote `.kiro/agents/verifier.*`, `.kiro/agents/porter.*` and
+`.kiro/hooks/scratch-save-log.json` from section 6 of the design (default agent, sessions
+"Set Up Kiro Verifica…" and "Create Porter Cust…"). Claude Code typed the prompts through
+desktop control, ran the tests and changed one line of the hook (see below).
+
+Hook (`PostFileSave`, command action):
+
+- Did not fire when the agent created a new file. Kiro has separate File Create and File Save
+  triggers.
+- Did not fire on an edit while the matcher was `^scratch/.*\.txt$`. It fired once the `^`
+  was removed, so the matcher is tested against a path that does not start at the workspace
+  root (Kiro's log shows absolute paths). The design's sample matcher
+  `^ports/cbact04c/.*\.py$` would never fire; use `ports/cbact04c/.*\.py$`.
+- The command ran with the workspace root as its working directory.
+- A hook file added mid-session was not registered until a new session started
+  (`hooks.reload.loaded {"read":0}` then `{"read":1,"registered":1}`). A later edit to the
+  hook file took effect in the same session.
+
+Verifier (`tools: ["read", "@revenant"]`, deny all `fs_write`):
+
+- Called `environment` on the `revenant` MCP server; Kiro logged the policy result as allow.
+- Has no write tool and no shell tool at all, so it could not attempt either. The separation
+  here comes from the `tools` list; its deny rule was not exercised.
+
+Porter (`tools: ["read", "write", "@revenant"]`, allow `ports/cbact04c/**`, deny the rest):
+
+- Write to `ports/cbact04c/permission-probe.txt`: allowed.
+- Write to `scratch/porter-outside.txt` and append to `docs/build-log.md`: both refused with
+  "Blocked by a permission rule (deny fs_write matching \"**\"); the user did not reject it.
+  Source: agent-profile."
+- So the allow rule plus the deny rule with `exclude` behaves as the design intends.
+
+Not tested: whether the Porter has any shell access that could bypass the write rule, and
+the behaviour of all of the above in the Kiro CLI. Test files were deleted afterwards.

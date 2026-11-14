@@ -1,0 +1,14 @@
+{
+  "name": "porter",
+  "description": "Implements the Python port from the approved spec and repairs it from concrete verification failures.",
+  "prompt": "file://./porter.prompt.md",
+  "tools": ["read", "write", "@revenant"],
+  "permissions": {
+    "rules": [
+      { "capability": "fs_write", "match": ["ports/cbact04c/**"], "effect": "allow" },
+      { "capability": "fs_write", "match": ["**"], "exclude": ["ports/cbact04c/**"], "effect": "deny" }
+    ]
+  },
+  "resources": ["file://.kiro/steering/**/*.md"],
+  "includeMcpJson": true
+}

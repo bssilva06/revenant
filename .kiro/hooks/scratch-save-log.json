@@ -1,0 +1,11 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Log scratch file save",
+      "trigger": "PostFileSave",
+      "matcher": "scratch/.*\\.txt$",
+      "action": { "type": "command", "command": "date >> build/hook-fired.log" }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "verifier",
+  "description": "Runs differential verification and reports reproducible discrepancies. Never edits code.",
+  "prompt": "file://./verifier.prompt.md",
+  "tools": ["read", "@revenant"],
+  "permissions": {
+    "rules": [
+      { "capability": "fs_write", "match": ["**"], "effect": "deny" }
+    ]
+  },
+  "resources": ["file://.kiro/steering/**/*.md"],
+  "includeMcpJson": true
+}
