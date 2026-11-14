@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Runs a command inside the Revenant container with the repo mounted at /work.
+# Milestone 1: a plain passthrough, e.g.  ./rv exhibits/cbact04c/build.sh
+# The engine CLI replaces the passthrough in milestone 2.
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")" && pwd)"
+image="${REVENANT_IMAGE:-revenant:dev}"
+
+if ! docker image inspect "$image" >/dev/null 2>&1; then
+  docker build -t "$image" -f "$root/docker/Dockerfile" "$root/docker"
+fi
+
+exec docker run --rm -v "$root":/work -w /work "$image" "$@"
