@@ -39,3 +39,12 @@ Reproduce:
 ```
 
 Not done: determinism test, Kiro validation, public repository.
+
+## 2026-11-14: Foundation steering
+
+Tool used: Kiro IDE, default agent, one chat prompt (session "Create Foundation…"). The prompt
+was typed by Claude Code through desktop control; the files were written by Kiro.
+
+- Added `docs/design.md`, the product requirements and technical design.
+- Kiro wrote `.kiro/steering/product.md`, `tech.md` and `structure.md` from sections 4 and 14
+  of the design, the build log, `UPSTREAM.md` and the file tree. About 0.91 credits, 49 s.
