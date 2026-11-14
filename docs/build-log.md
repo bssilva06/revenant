@@ -48,3 +48,43 @@ was typed by Claude Code through desktop control; the files were written by Kiro
 - Added `docs/design.md`, the product requirements and technical design.
 - Kiro wrote `.kiro/steering/product.md`, `tech.md` and `structure.md` from sections 4 and 14
   of the design, the build log, `UPSTREAM.md` and the file tree. About 0.91 credits, 49 s.
+
+## 2026-11-14: Determinism check
+
+Tool used: Claude Code (toolchain proof, throwaway script `scripts/m1_determinism.py`).
+
+- 100 executions of the seed data and 100 of a one-account input, all exit code 0.
+- With `COB_CURRENT_DATE` set, the only transaction bytes that varied were record offsets
+  298, 299, 324 and 325: the hundredths digits of `TRAN-ORIG-TS` and `TRAN-PROC-TS`.
+- The account file and the console output were identical across all runs.
+- Decision confirmed for arm64: pin the clock, mask those four bytes, nothing else.
+
+Reproduce: `./rv python3 scripts/m1_determinism.py`
+
+## 2026-11-14: Stub MCP server for Kiro validation
+
+Tool used: Claude Code (launch plumbing only; the real server is to be built in Kiro).
+
+- Image now includes the Python MCP SDK, pinned to 2.3.0. In SDK 2.x `FastMCP` is renamed
+  `MCPServer` (`from mcp.server.mcpserver import MCPServer`); the design's sample uses the
+  1.x name.
+- `scripts/mcp_stub.py` exposes one read-only tool, `environment`. `scripts/revenant-mcp.sh`
+  starts it in the container and resolves the repo from its own location.
+- From a shell, launched from `/tmp`: initialize, tools/list and tools/call all succeed.
+- Registered in `.kiro/settings/mcp.json`. Kiro did not load it: its log shows the workspace
+  is not trusted, which skips workspace-scope MCP config and disables hook execution
+  (`workspace scope skipped: workspace is not trusted`,
+  `hooks.v2.executionDisabledUntrustedWorkspace`). Kiro's log also shows `autoApprove`
+  entries being migrated into a `permissions.yaml`.
+
+- Cause: the Kiro window had been opened before the workspace was trusted, and it kept that
+  state. A new chat session did not help; closing and reopening the window did. The same
+  stale window was also loading no workspace steering (`[Steering] ExistingFiles:` empty).
+- After reopening, Kiro started the container and its default agent called `environment`:
+  `launched_from_workspace_root: true`, `repo_mounted: true`, `exhibit_built: true`. So Kiro
+  launches local MCP servers with the workspace root as the working directory, and the
+  relative path in `mcp.json` works. The session also showed "Included Steering".
+- Kiro reported "Migrated 1 MCP tool auto-approval to Trust v2": the `autoApprove` entry was
+  copied into a per-workspace `permissions.yaml` under `~/.kiro/workspace-roots/`.
+
+Still open: agent permission rules and the `PostFileSave` hook.

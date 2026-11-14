@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "revenant": {
+      "command": "bash",
+      "args": ["scripts/revenant-mcp.sh"],
+      "autoApprove": ["environment"]
+    }
+  }
+}
