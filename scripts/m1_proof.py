@@ -70,22 +70,24 @@ def alnum(text: str, length: int) -> bytes:
     return text.ljust(length).encode()
 
 
+POS, NEG = "{ABCDEFGHI", "}JKLMNOPQR"
+
+
 def sdec(value: int, length: int) -> bytes:
-    """Signed display number in this runtime's convention: negative marks the last digit p..y."""
+    """Signed display number with a mainframe sign overpunch on the last digit."""
     digits = str(abs(value)).rjust(length, "0")
     assert len(digits) == length
-    if value < 0:
-        digits = digits[:-1] + chr(ord("p") + int(digits[-1]))
-    return digits.encode()
+    table = NEG if value < 0 else POS
+    return (digits[:-1] + table[int(digits[-1])]).encode()
 
 
 def unsdec(raw: bytes) -> int:
     s = raw.decode()
     last = s[-1]
-    if "p" <= last <= "y":
-        return -int(s[:-1] + str(ord(last) - ord("p")))
-    if last == "{":
-        return int(s[:-1] + "0")
+    if last in POS:
+        return int(s[:-1] + str(POS.index(last)))
+    if last in NEG:
+        return -int(s[:-1] + str(NEG.index(last)))
     return int(s)
 
 

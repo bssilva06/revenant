@@ -123,3 +123,50 @@ Porter (`tools: ["read", "write", "@revenant"]`, allow `ports/cbact04c/**`, deny
 
 Not tested: whether the Porter has any shell access that could bypass the write rule, and
 the behaviour of all of the above in the Kiro CLI. Test files were deleted afterwards.
+
+## 2026-11-14: First AI attempt frozen and checked by hand
+
+Tools used: Kiro IDE wrote the port (see `ports/cbact04c/first_attempt/PROMPT.md`). Claude
+Code copied it in unchanged and wrote the throwaway comparison `scripts/first_attempt_check.py`.
+
+Four hand-written worlds: three one-account probes (1.00 at 6.00, 100.50 at 15.00, -100.50 at
+15.00) and one with two accounts, a default-group fallback and a zero rate. The port received
+the same logical values through its own `run()` and formatted its own records.
+
+- Against the witness as built so far (GnuCOBOL default sign convention): every decoded value
+  agrees, including truncation, the unposted last account, the default-group fallback and the
+  skipped zero rate. Every text field and filler is byte-identical. The only differences are
+  class `format`, on every signed field: the witness writes `00000000125` and `0000000012u`,
+  the port writes `0000000012E` and `0000000012N`.
+- The port's convention is the mainframe one, which is also what CardDemo's seed data uses.
+- Against a witness built with `cobc -fsign=EBCDIC`: all four worlds are byte-identical after
+  the timestamp mask. The seed data also runs to exit 0 with 50 records under that build and
+  keeps its `{` signs.
+
+Consequences:
+
+- The first AI attempt does not disagree with the old program on these inputs. This is four
+  hand-written inputs, not a verification run; generated inputs may still find something.
+- The sign difference comes from the GnuCOBOL default, not from the port. Decision needed:
+  build the exhibit with `-fsign=EBCDIC` so the witness matches the original platform's
+  convention. That would also remove the silent mis-read of seed-data negatives.
+
+Reproduce: `./rv python3 scripts/first_attempt_check.py`, and with `REVENANT_SIGN=EBCDIC`
+after building `build/cbact04c-ebcdic` with the extra flag.
+
+## 2026-11-14: Exhibit now built with mainframe sign encoding
+
+Decision by the owner, following the first-attempt check: build with `cobc -fsign=EBCDIC`.
+This replaces the design's decision to use the runtime's native sign convention.
+
+- `exhibits/cbact04c/build.sh` adds the flag for the legacy program and the utilities.
+- Signed display fields now use the overpunch `{`, `A` to `I` (positive) and `}`, `J` to `R`
+  (negative). The four probes give the same values as before with new bytes: 1.25 is
+  `0000000012E`, -1.25 is `0000000012N`.
+- Seed data: exit 0, 50 records, and its `{` signs are preserved through the run.
+- Determinism rerun: 100 executions of two inputs, only the four timestamp-hundredths bytes vary.
+- First AI attempt: all four hand-written worlds byte-identical after the timestamp mask.
+- `.kiro/steering/tech.md` corrected by hand (two lines) to state the new convention.
+- `docs/design.md` is unchanged and still describes the native convention in sections 5 and 12.
+
+Tool used: Claude Code.

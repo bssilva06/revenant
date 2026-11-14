@@ -16,7 +16,7 @@ Python 3.12) and the `./rv` wrapper exist. The rest is planned.
   There is no native macOS COBOL toolchain.
 - Do not use `gnucobol4`. On Ubuntu 24.04 it is built without indexed files and
   cannot compile the exhibit. `gnucobol3` reports `indexed file handler: BDB`.
-- Build the legacy program with `cobc -x -std=ibm`, linked behind the `RUNINT`
+- Build the legacy program with `cobc -x -std=ibm -fsign=EBCDIC`, linked behind the `RUNINT`
   driver. Build with `./rv exhibits/cbact04c/build.sh`. The script refuses to build
   if any file differs from `exhibits/cbact04c/SHA256SUMS`.
 - `./rv <command>` runs a command in the `revenant:dev` image with the repo mounted
@@ -29,8 +29,10 @@ Python 3.12) and the `./rv` wrapper exist. The rest is planned.
 - Money and rates are integers of the smallest unit. No floats.
 - Records are fixed-width display items: `PIC X`, `PIC 9`, `PIC S9..V9..`. Packed and
   binary numerics are unsupported and must raise an error naming the item.
-- Signed display values use the runtime's own sign convention (last digit `p` to
-  `y` for negatives). Compare raw bytes as well as parsed values.
+- Signed display values carry a mainframe sign overpunch on the last digit: `{`, `A`
+  to `I` for positive 0 to 9 and `}`, `J` to `R` for negative. The exhibit is built with
+  `-fsign=EBCDIC` so the old program reads and writes this convention. Compare raw
+  bytes as well as parsed values.
 - Port entry point: `run(world, clock) -> Outputs`, with `transactions: bytes`
   (350-byte records) and `accounts: list[bytes]` (300-byte records), formatted by
   the port itself.

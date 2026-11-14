@@ -12,7 +12,10 @@ out="$(cd "$out" && pwd)"
 # Refuse to build if the legacy sources differ from the pinned upstream hashes.
 (cd "$here" && sha256sum --quiet -c SHA256SUMS)
 
-flags=(-std=ibm -I "$here/legacy/cpy")
+# -fsign=EBCDIC: signed display fields carry the sign as a mainframe overpunch
+# ({ A-I positive, } J-R negative), the convention of the original platform and of
+# CardDemo's seed data. The GnuCOBOL default differs and mis-reads seed negatives.
+flags=(-std=ibm -fsign=EBCDIC -I "$here/legacy/cpy")
 
 # One executable: the driver is the entry point and the legacy program is linked in.
 cobc -x "${flags[@]}" -o "$out/runint" \
