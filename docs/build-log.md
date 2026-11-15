@@ -189,3 +189,22 @@ the old program; the owner sent the corrections to Kiro, which revised the file)
 New observations used as acceptance values: a negative amount that truncates to zero is
 written as positive zero (`-1.00` at `6.00` gives `0000000000{`), and `-1.20` at `10.00`
 gives `0000000000J`. All 201 seed lines decode under the spec's rules.
+
+## 2026-11-14: copybook-codec spec, design and task stages
+
+Tool used: Kiro IDE, Spec agent. Kiro wrote `design.md` (two modules, 23 correctness
+properties with their Hypothesis strategies, 8 example and integration suites) and
+`tasks.md` (5 tasks, each ending in a `./rv` command), and applied seven follow-on edits
+to `requirements.md`.
+
+Review (Claude Code read both files and checked the parser rules against the five
+copybooks; the owner sent the changes to Kiro):
+
+- Properties given `### Property N:` headings so Kiro's property-based testing can read them.
+- The witness test now encodes the old program's inputs with the new codec as well as
+  decoding its output.
+- pytest pinned to 9.2.0 and Hypothesis to 6.170.15.
+- A ban on the `/` operator dropped from the static check; `Record_Schema.field` renamed
+  `field_named`.
+
+No code written yet.

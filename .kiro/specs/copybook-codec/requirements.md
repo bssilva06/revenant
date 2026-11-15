@@ -23,8 +23,8 @@ Verification wording: results of this component's tests are described as "no fai
 - **Record_Codec**: The component in `engine/revenant/codec.py` that encodes logical records into bytes and decodes bytes into logical records.
 - **Copybook**: Text of COBOL data declarations in fixed format, such as `CVACT01Y.cpy`.
 - **Fixed_Format**: Source layout where column 7 is the indicator area, columns 8 to 72 hold code, and columns 73 to 80 are the sequence area.
-- **Field_Schema**: An immutable description of one elementary item: `name`, `offset` (zero-based byte position in the record), `length` (bytes), `kind` and `scale`.
-- **Group_Span**: The name, offset and length of a group item, which covers its children.
+- **Field_Schema**: An immutable description of one elementary item: `name`, `level`, `offset` (zero-based byte position in the record), `length` (bytes), `kind` and `scale`.
+- **Group_Span**: The name, level, offset and length of a group item, which covers its children.
 - **Record_Schema**: The name of an 01-level record, its total length in bytes, its Group_Spans, and its Field_Schemas in declaration order.
 - **Kind**: One of `alnum`, `uint`, `sdec` or `filler`.
 - **Alnum_Field**: A field of kind `alnum`, declared `PIC X(n)`.
@@ -87,6 +87,7 @@ Verification wording: results of this component's tests are described as "no fai
 8. IF a line contains a tab character in columns 1 to 72, THEN THE Copybook_Parser SHALL raise a Copybook_Error that states the 1-based line number of the first such line and SHALL NOT return a Record_Schema.
 9. IF a line is shorter than 7 columns, THEN THE Copybook_Parser SHALL treat the line as blank and SHALL NOT raise an error.
 10. IF the text ends with a declaration that has no terminating period, THEN THE Copybook_Parser SHALL raise a Copybook_Error that states the 1-based line number on which that declaration starts and SHALL NOT return a Record_Schema.
+11. IF column 7 of a line holds a character other than a space, `*` or `/`, THEN THE Copybook_Parser SHALL raise a Copybook_Error stating the 1-based line number and SHALL NOT return a Record_Schema.
 
 ### Requirement 3: Reject unsupported clauses by item name
 
@@ -240,17 +241,20 @@ Verification wording: results of this component's tests are described as "no fai
 2. WHEN a decoded Seed_File line is encoded again, THE Record_Codec SHALL reproduce every byte outside the Filler_Field spans of the padded line, including each `{` sign byte.
 3. WHEN the test for criterion 2 compares a re-encoded record with its padded Seed_File line, THE test SHALL compare each Filler_Field span for length only, because the seed fillers in `tcatbal.txt` and `discgrp.txt` hold zeros and the encoder writes spaces.
 4. WHEN the test for criterion 1 runs over a Seed_File, THE test SHALL process every line of that file and SHALL fail if any line is not decoded, so that a line with CRLF ending (49 of the 50 lines in `tcatbal.txt`) or a line shorter than its record length (the 36-character lines in `cardxref.txt`, whose record is 50 bytes) is neither skipped nor counted as a pass.
-5. WHERE the legacy program is built in the Container (the `build/cbact04c` binaries exist), THE test suite SHALL include an integration test in `tests/integration/` that performs a Witness_Run on one-account inputs and compares the TRAN-AMT bytes of the transaction record (offset 132, length 11) with the Record_Codec encoding of the expected integer.
+5. WHERE the legacy program is built in the Container (the `build/cbact04c` binaries exist), THE test suite SHALL include an integration test in `tests/integration/` that performs a Witness_Run on one-account inputs and checks the TRAN-AMT bytes of the transaction record (offset 132, length 11) against the Record_Codec encoding of the expected integer.
+   - For each input, THE integration test SHALL build the TCATBALF record and the DISCGRP record with `encode_record` on the Record_Schemas parsed from `CVTRA01Y.cpy` and `CVTRA02Y.cpy`, and SHALL substitute those records into the world passed to `run_witness`. The ACCTFILE and XREFFILE records MAY come unchanged from the one-account world builder.
+   - THE integration test therefore checks that the old program reads the bytes the Record_Codec writes and that the Record_Codec decodes the bytes the old program writes.
 6. THE integration test SHALL use these inputs, each given as balance and annual rate in the smallest unit, with the observed TRAN-AMT bytes and expected integer:
    - balance 10050 (100.50) at rate 1500 (15.00): `0000000012E`, 125.
    - balance -10050 (-100.50) at rate 1500 (15.00): `0000000012N`, -125.
    - balance -100 (-1.00) at rate 600 (6.00): `0000000000{`, 0. This input is negative and its truncated interest is zero, and the old program writes positive zero `{`, which is why the Record_Codec encoder writes `{` for zero.
    - balance -120 (-1.20) at rate 1000 (10.00): `0000000000J`, -1.
 7. FOR EACH input in criterion 6, THE integration test SHALL decode the TRAN-AMT bytes written by the old program with the Record_Codec and compare the result with the expected integer, and SHALL encode the expected integer with the Record_Codec and compare the bytes with the TRAN-AMT bytes written by the old program.
-8. WHILE the oracle runner does not exist, THE integration test SHALL obtain the old program's output by loading `scripts/m1_proof.py` by file path (the file is not a package) and calling its `run_witness` and one-account world builder.
+8. WHILE the oracle runner does not exist, THE integration test SHALL obtain the old program's output by loading `scripts/m1_proof.py` by file path (the file is not a package) and calling its `run_witness` and one-account world builder, with the TCATBALF and DISCGRP records replaced as stated in criterion 5.
 9. IF the old program exits with a non-zero code, or writes other than exactly one 350-byte transaction record, for an input in criterion 6, THEN THE integration test SHALL fail and SHALL name the input.
 10. IF a byte of the TRAN-AMT field differs between the old program and the Record_Codec encoding, THEN THE integration test SHALL fail and SHALL name the input and the first differing byte offset.
 11. THE Record_Codec SHALL document, in the module docstring, that the Overpunch convention matches `cobc -std=ibm -fsign=EBCDIC` and is not the GnuCOBOL native convention.
+12. WHERE the CI option `--require-witness` is given and `build/cbact04c` is absent, THE integration test SHALL fail instead of skipping.
 
 ### Requirement 11: Packaging, execution and test layout
 
@@ -260,12 +264,13 @@ Verification wording: results of this component's tests are described as "no fai
 
 1. THE Copybook_Parser SHALL be implemented in `engine/revenant/copybook.py` and THE Record_Codec in `engine/revenant/codec.py`.
 2. THE engine package SHALL import without a dependency on any specific exhibit, so that the component runs against any Copybook that uses the supported grammar. Importing `revenant.copybook` and `revenant.codec` SHALL succeed when no `exhibits/` directory is on the import path.
-3. THE test suite SHALL place unit tests in `tests/unit/`, property tests in `tests/property/`, integration tests in `tests/integration/` and the Copybook_Text_Helper in `tests/support/`, and SHALL create only those directories and `engine/revenant/` files that this component needs.
+3. THE test suite SHALL place unit tests in `tests/unit/`, property tests in `tests/property/`, integration tests in `tests/integration/` and the Copybook_Text_Helper in `tests/support/`, and SHALL create only those directories and `engine/revenant/` files that this component needs, plus `tests/conftest.py`, `pytest.ini` at the repository root, and the empty `__init__.py` files in `tests/`, `tests/unit/`, `tests/property/`, `tests/integration/` and `tests/support/`.
 4. WHEN the command `./rv python3 -m pytest tests/unit tests/property` runs in the Container, THE test suite SHALL execute without requiring a native toolchain on the host, and SHALL exit with code 0 only if every collected test passes.
 5. THE test suite SHALL use Hypothesis with a registered derandomized profile that CI selects, so that two runs with the same code and the same Hypothesis version select the same cases.
 6. THE component SHALL import only Python standard library modules at run time, and only Hypothesis and pytest in tests.
 7. THE component SHALL make no model calls.
 8. THE source, tests and test output messages SHALL describe passing results as "no failure in N generated cases", where N is the number of cases run. THE source and tests SHALL NOT contain the words "proven" or "equivalent", or a confidence percentage.
 9. IF `exhibits/cbact04c/SHA256SUMS` no longer matches the files under `exhibits/cbact04c/legacy/`, THEN THE test suite SHALL fail with a message naming each mismatched or missing file.
-10. THE file `docker/Dockerfile` SHALL install pytest and Hypothesis at exact pinned versions written with `==`, not version ranges.
-11. WHEN the command `./rv python3 -c "import revenant.copybook, revenant.codec"` runs from the repository root mounted at `/work`, THE Container SHALL exit with code 0 without a PYTHONPATH argument and without path changes on the command line, because the image or its environment provides the path to `engine/`.
+10. THE file `docker/Dockerfile` SHALL install `pytest==9.2.0` and `hypothesis==6.170.15`, written with `==`, not version ranges.
+11. WHEN the command `./rv python3 -c "import revenant.copybook, revenant.codec"` runs from the repository root mounted at `/work`, THE Container SHALL exit with code 0 without a PYTHONPATH argument and without path changes on the command line, because the line `ENV PYTHONPATH=/work/engine` in `docker/Dockerfile` provides the path to `engine/`. After that line is added, the image is rebuilt with `docker build -t revenant:dev -f docker/Dockerfile docker`.
+12. THE test suite SHALL fail if any Python file under `ports/` imports `revenant`.
