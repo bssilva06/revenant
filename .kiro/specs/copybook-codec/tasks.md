@@ -160,12 +160,12 @@ Optional marking: example tests that carry the acceptance values (the five copyb
     - **Validates: Requirements 5.12, 5.16, 6.15**
     - Run: `./rv python3 -m pytest tests/property/test_codec.py -k filler`
 
-  - [ ]* 3.14 Write property test for overflow and bad text rejection
+  - [ ] 3.14 Write property test for overflow and bad text rejection
     - **Property 15: Overflow and bad text rejection**
     - **Validates: Requirements 5.3, 5.5, 5.7, 8.1, 8.2, 8.3, 8.4, 8.9, 8.10**
     - Run: `./rv python3 -m pytest tests/property/test_codec.py -k overflow`
 
-  - [ ]* 3.15 Write property test for type rejection
+  - [ ] 3.15 Write property test for type rejection
     - **Property 16: Type rejection**
     - **Validates: Requirements 8.5, 8.6**
     - Run: `./rv python3 -m pytest tests/property/test_codec.py -k type_rejection`
@@ -180,12 +180,12 @@ Optional marking: example tests that carry the acceptance values (the five copyb
     - **Validates: Requirements 5.17, 6.16, 6.17**
     - Run: `./rv python3 -m pytest tests/property/test_codec.py -k field_record_agreement`
 
-  - [ ]* 3.18 Write property test for malformed bytes rejection
+  - [ ] 3.18 Write property test for malformed bytes rejection
     - **Property 19: Malformed bytes rejection**
     - **Validates: Requirements 6.6, 6.11, 9.2, 9.3, 9.4, 9.5, 9.8, 9.9**
     - Run: `./rv python3 -m pytest tests/property/test_codec.py -k malformed`
 
-  - [ ]* 3.19 Write property test for wrong length rejection
+  - [ ] 3.19 Write property test for wrong length rejection
     - **Property 20: Wrong length rejection**
     - **Validates: Requirements 6.2, 9.1, 9.6, 9.7, 9.10**
     - Run: `./rv python3 -m pytest tests/property/test_codec.py -k wrong_length`

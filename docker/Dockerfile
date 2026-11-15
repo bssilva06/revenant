@@ -18,4 +18,10 @@ RUN apt-get update \
 ARG MCP_VERSION=2.3.0
 RUN pip install --no-cache-dir --break-system-packages "mcp${MCP_VERSION:+==$MCP_VERSION}"
 
+# Test tools for the engine, pinned.
+ARG PYTEST_VERSION=9.2.0
+ARG HYPOTHESIS_VERSION=6.170.15
+RUN pip install --no-cache-dir --break-system-packages "pytest==${PYTEST_VERSION}" "hypothesis==${HYPOTHESIS_VERSION}"
+# The repo is bind-mounted at /work at run time, so the engine package is found by path.
+ENV PYTHONPATH=/work/engine
 WORKDIR /work

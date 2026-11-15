@@ -208,3 +208,15 @@ copybooks; the owner sent the changes to Kiro):
   `field_named`.
 
 No code written yet.
+
+## 2026-11-14: Image rebuilt with test tools (copybook-codec task 1.1)
+
+Tool used: Kiro IDE (copybook-codec spec, task 1.1).
+
+- `docker/Dockerfile` now installs `pytest==9.2.0` and `hypothesis==6.170.15` and sets
+  `ENV PYTHONPATH=/work/engine`. The repo is bind-mounted at `/work`, so the engine package is
+  found by path and no editable install is used.
+- Rebuilt with `docker build -t revenant:dev -f docker/Dockerfile docker` (`./rv` builds only when
+  the image is missing).
+- Observed: `./rv python3 -m pytest --version` prints `pytest 9.2.0`; Hypothesis reports `6.170.15`;
+  `PYTHONPATH=/work/engine` inside the container.
